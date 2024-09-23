@@ -20,7 +20,7 @@ var (
 	rootDir    = flag.String("dir", "", "Directory to parse")
 	printDebug = flag.Bool("print", false, "Print the parsed data")
 	outDir     = flag.String("outDir", "@/dist", "Output directory (start with @ to use the root directory)")
-	ext        = flag.String("ext", FileExt, "File extension. (default: .st)")
+	ext        = flag.String("ext", FileExt, "File extension. (default: st)")
 	pkg        = flag.String("pkg", "dist", "Package name for dist. (default: dist)")
 )
 
