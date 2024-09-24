@@ -1,10 +1,8 @@
 package main
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -12,84 +10,82 @@ import (
 )
 
 const (
-	FileExt = "st" // spark template file extension
+	FileExt = "st"          // spark template file extension
+	Version = "0.1.1-alpha" // version of spark-gen
 )
 
 var (
-	start      = time.Now()
-	rootDir    = flag.String("dir", "", "Directory to parse")
-	printDebug = flag.Bool("print", false, "Print the parsed data")
-	outDir     = flag.String("outDir", "@/dist", "Output directory (start with @ to use the root directory)")
-	ext        = flag.String("ext", FileExt, "File extension. (default: st)")
-	pkg        = flag.String("pkg", "dist", "Package name for dist. (default: dist)")
+	start   = time.Now()
+	rootDir = flag.String("dir", "", "Directory to parse")
+	out     = flag.String("outDir", "@/dist/out.go", "Output file path (start with @ to use the root directory)")
+	ext     = flag.String("ext", FileExt, "File extension. (default: st)")
+	pkg     = flag.String("pkg", "dist", "Package name for dist. (default: dist)")
 )
 
 func main() {
 	flag.Parse()
 	generate()
-	fmt.Println("done in", time.Since(start))
+	Done(time.Since(start))
 }
 
 func generate() {
-	oDir := *outDir
-	oDir = strings.Replace(oDir, "@", *rootDir, 1)
-	outDir = &oDir
+	outPath := *out
+	outPath = strings.Replace(outPath, "@", *rootDir, 1)
+	outPath = filepath.Clean(outPath)
+	out = &outPath
 
 	if *rootDir == "" {
-		log.Fatal("dir name cannot be empty.")
+		Error("flag --dir cannot be empty", true)
 	}
+
+	if *ext != FileExt {
+		Warning("the --ext flag is not the default, it may cause possible problems")
+	}
+
+	fmt.Println("Spark-Gen v" + Version)
+
+	Log("Tokenizing spark templates...")
 
 	var data = make(map[string]*Component)
 
 	files, err := walkDir(*rootDir, *ext) // get all st (spark template) files.
 	if err != nil {
-		log.Fatal("failed to read files from dir:", err)
+		Error(fmt.Sprint("failed to read files from dir:", err), true)
 	}
 
 	for _, filePath := range files {
 		file, err := os.Open(filePath)
 		if err != nil {
-			log.Fatal("failed to open file:", err)
+			Error(fmt.Sprint("failed to open file:", err), true)
 		}
 
 		parser := NewParser(file, filePath)
 
 		els, err := parser.Parse()
 		if err != nil {
-			log.Fatal("failed to parse file:", err)
+			Error(fmt.Sprint("failed to parse file:", err), true)
 		}
 
 		filePath, err = getNormalizedPath(filePath, *rootDir)
 		if err != nil {
-			log.Fatal("failed to get normalized path:", err)
+			Error(fmt.Sprint("failed to get normalized path:", err), true)
 		}
 
 		data[componentCase(filePath)] = els
 	}
 
-	if *printDebug {
-		for filePath, els := range data {
-			fmt.Println("file:", filePath)
-			for _, el := range els.Elements {
-				printElement(el, 0)
-			}
-		}
-	}
-
-	b, _ := json.MarshalIndent(data, "", "  ")
-	os.MkdirAll(*outDir, os.ModePerm)
-
-	os.WriteFile(filepath.Join(*outDir, "spark_gen.json"), b, os.ModePerm)
-
-	g := NewGenerator(filepath.Join(*outDir, "out.go"), *pkg, *ext, data)
+	os.MkdirAll(filepath.Dir(*out), os.ModePerm)
+	g := NewGenerator(*out, *pkg, *ext, data)
 
 	err = g.Make()
 	if err != nil {
-		log.Fatal("failed to generate go files:", err)
+		Error(fmt.Sprint("failed to generate go files:", err), true)
 	}
 
 	err = g.Save()
 	if err != nil {
-		log.Fatal("failed to save go files:", err)
+		Error(fmt.Sprint("failed to save go files:", err), true)
 	}
+
+	fmt.Printf("The created file location is: %s\n", *out)
 }

@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"time"
 )
 
 type Generator struct {
@@ -17,9 +18,10 @@ type Generator struct {
 }
 
 func NewGenerator(out, pkg, ext string, data map[string]*Component) *Generator {
-	m := &Generator{data: data, outPath: out, ext: ext + "-"}
-	m.out = fmt.Sprintf("package %s\n\nimport \"github.com/go-spark/spark\"\n\n", pkg)
-	return m
+	g := &Generator{data: data, outPath: out, ext: ext + "-"}
+	g.out += "// This file is auto generated. Please do not edit.\n// To generate a file, run: spark-gen -dir <your templates dir> -out <your out dir> -pkg <go package name>"
+	g.out += fmt.Sprintf("\npackage %s\n\nimport \"github.com/go-spark/spark\"\n\n", pkg)
+	return g
 }
 
 func (g *Generator) Make() error {
@@ -33,6 +35,16 @@ func (g *Generator) Make() error {
 }
 
 func (g *Generator) createComponent(name string, component *Component) error {
+	if len(component.Elements) == 0 {
+		Warning(fmt.Sprintf("component %s has no elements, skipping...", name))
+		return nil
+	}
+
+	start := time.Now()
+	defer func(start time.Time) {
+		Info(fmt.Sprintf("⌚ Generated component: %s in %s", name, time.Since(start)))
+	}(start)
+
 	g.out += fmt.Sprintf("// %s %s %s\nfunc %s() spark.Component {\n", name, "is a spark.Component ->", component.File, name)
 	g.out += fmt.Sprintf("\t_component := spark.NewV1Component([]string{%s})\n", strings.Join(component.Props, ","))
 	for i, el := range component.Elements {
