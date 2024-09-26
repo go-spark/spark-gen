@@ -11,13 +11,13 @@ import (
 
 const (
 	FileExt = "st"          // spark template file extension
-	Version = "0.1.1-alpha" // version of spark-gen
+	Version = "1.0.0-alpha" // version of spark-gen
 )
 
 var (
 	start   = time.Now()
 	rootDir = flag.String("dir", "", "Directory to parse")
-	out     = flag.String("outDir", "@/dist/out.go", "Output file path (start with @ to use the root directory)")
+	out     = flag.String("out", "@/dist/out.go", "Output file path (start with @ to use the root directory)")
 	ext     = flag.String("ext", FileExt, "File extension. (default: st)")
 	pkg     = flag.String("pkg", "dist", "Package name for dist. (default: dist)")
 )
