@@ -7,7 +7,7 @@ Spark is a templating engine for go. It only provides components and `property`/
 First, you need to install the generator package:
 
 ```bash
-go install https://github.com/go-spark/spark-gen
+go install github.com/go-spark/spark-gen@latest
 ```
 
 ### Simple usage
